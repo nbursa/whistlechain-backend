@@ -10,7 +10,6 @@ import (
 	"github.com/nbursa/whistlechain-backend/storage"
 )
 
-// Main function
 func main() {
 	// Load environment variables
 	err := godotenv.Load()
@@ -18,13 +17,8 @@ func main() {
 		log.Println("No .env file found, using default values")
 	}
 
-	// ✅ Initialize Database Connection
+	// Connect to Database
 	storage.ConnectDB()
-
-	// Ensure database is connected before starting the server
-	if storage.DB == nil {
-		log.Fatal("❌ Database connection failed")
-	}
 
 	// Initialize Fiber app
 	app := fiber.New()
@@ -34,11 +28,13 @@ func main() {
 	app.Get("/reports", GetAllReports)
 	app.Get("/report/:id", GetReportByID)
 
-	// Start the server
+	// Fix: Use Heroku-assigned PORT
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = "3000" // Default for local testing
 	}
+
+	log.Println("🚀 Server running on port:", port)
 	log.Fatal(app.Listen(":" + port))
 }
 
