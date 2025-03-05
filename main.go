@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	"github.com/nbursa/whistlechain-backend/models"
+	"github.com/nbursa/whistlechain-backend/blockchain"
 	"github.com/nbursa/whistlechain-backend/storage"
 )
 
@@ -39,7 +39,7 @@ func main() {
 // SubmitReport handles report submissions
 func SubmitReport(c *fiber.Ctx) error {
 	type Request struct {
-		Description string `json:"description"`
+		EncryptedDescription string `json:"encryptedDescription"`
 	}
 
 	var req Request
@@ -47,11 +47,21 @@ func SubmitReport(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	newReport := models.NewReport(req.Description)
-	reportStore.AddReport(newReport)
+	// Store encrypted report (do NOT decrypt on the backend)
+	encryptedReport := req.EncryptedDescription
 
-	return c.JSON(fiber.Map{"message": "Report submitted", "report": newReport})
+	// Generate a hash for blockchain verification
+	reportHash := blockchain.GenerateHash(encryptedReport)
+
+	// TODO: Store `encryptedReport` in the database or IPFS
+	// TODO: Store `reportHash` on the blockchain
+
+	return c.JSON(fiber.Map{
+		"message": "Report submitted successfully",
+		"hash":    reportHash,
+	})
 }
+
 
 // GetAllReports returns all reports
 func GetAllReports(c *fiber.Ctx) error {
