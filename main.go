@@ -10,6 +10,15 @@ import (
 	"github.com/nbursa/whistlechain-backend/storage"
 )
 
+// Report struct with explicit database column mapping
+type Report struct {
+	ID             int    `db:"id" json:"id"`
+	CompanyID      int    `db:"company_id" json:"company_id"`
+	EncryptedData  string `db:"encrypted_data" json:"encrypted_data"`
+	BlockchainHash string `db:"blockchain_hash" json:"blockchain_hash"`
+	CreatedAt      string `db:"created_at" json:"created_at"`
+}
+
 func main() {
 	// Load environment variables
 	err := godotenv.Load()
@@ -19,6 +28,9 @@ func main() {
 
 	// Connect to Database
 	storage.ConnectDB()
+
+	// Ensure tables exist
+	ensureTables()
 
 	// Initialize Fiber app
 	app := fiber.New()
@@ -39,6 +51,24 @@ func main() {
 
 	log.Println("🚀 Server running on port:", port)
 	log.Fatal(app.Listen(":" + port))
+}
+
+// ensureTables creates the reports table if it doesn't exist
+func ensureTables() {
+	query := `
+	CREATE TABLE IF NOT EXISTS reports (
+		id SERIAL PRIMARY KEY,
+		company_id INT NOT NULL,
+		encrypted_data TEXT NOT NULL,
+		blockchain_hash TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	`
+	_, err := storage.DB.Exec(query)
+	if err != nil {
+		log.Fatalf("❌ Failed to create reports table: %v", err)
+	}
+	log.Println("✅ Tables ensured to exist")
 }
 
 // SubmitReport handles report submissions
@@ -76,13 +106,7 @@ func SubmitReport(c *fiber.Ctx) error {
 
 // GetAllReports returns all reports from PostgreSQL
 func GetAllReports(c *fiber.Ctx) error {
-	var reports []struct {
-		ID                int    `json:"id"`
-		CompanyID         int    `json:"company_id"`
-		EncryptedData     string `json:"encrypted_data"`
-		BlockchainHash    string `json:"blockchain_hash"`
-		CreatedAt         string `json:"created_at"`
-	}
+	var reports []Report
 
 	err := storage.DB.Select(&reports, "SELECT * FROM reports")
 	if err != nil {
@@ -97,13 +121,7 @@ func GetAllReports(c *fiber.Ctx) error {
 func GetReportByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	var report struct {
-		ID                int    `json:"id"`
-		CompanyID         int    `json:"company_id"`
-		EncryptedData     string `json:"encrypted_data"`
-		BlockchainHash    string `json:"blockchain_hash"`
-		CreatedAt         string `json:"created_at"`
-	}
+	var report Report
 
 	err := storage.DB.Get(&report, "SELECT * FROM reports WHERE id = $1", id)
 	if err != nil {
