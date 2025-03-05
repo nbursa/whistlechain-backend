@@ -24,6 +24,9 @@ func main() {
 	app := fiber.New()
 
 	// API Routes
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("✅ WhistleChain Backend is running!")
+	})	
 	app.Post("/report", SubmitReport)
 	app.Get("/reports", GetAllReports)
 	app.Get("/report/:id", GetReportByID)
